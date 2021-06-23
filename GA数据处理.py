@@ -14,6 +14,7 @@ def date_Str(str):
 def csv_process(csv):
     sku_pv = pd.read_csv(csv)
     sku_pv['日期'] = sku_pv['日期'].apply(date_Str)
+    sku_pv['日期'] = pd.to_datetime(sku_pv['日期'],format='%Y-%m-%d')
     sku_pv['产品 SKU'] = sku_pv['产品 SKU'].str.upper().apply(lambda x: x.strip())
     return sku_pv
 
