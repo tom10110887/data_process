@@ -5,8 +5,8 @@ import time
 
 
 url_pms = 'https://pms.popicorns.com/module/'
-user_nm_yc = 'xiaolu'
-password_yc = '888lujiaxin'
+user_nm_yc = ''
+password_yc = ''
 
 driver = webdriver.Chrome()
 driver.maximize_window()
@@ -30,6 +30,10 @@ def click_yc(num):
         return False
     except:
         return True
+# 跳去第n页开始
+driver.find_element_by_xpath(".//input[@type='number']").send_keys('00')
+ActionChains(driver).move_by_offset(960, 360).click().perform()
+ActionChains(driver).move_by_offset(-960, -360).perform()
 
 for k in range(1,100):
     for num in range(1,11):
@@ -39,11 +43,6 @@ for k in range(1,100):
             ActionChains(driver).move_by_offset(960, 360).click().perform()
             ActionChains(driver).key_down(Keys.DOWN).perform()
             ActionChains(driver).move_by_offset(-960, -360).perform()
-        # for j in range(1,4):
-        #     ActionChains(driver).key_down(Keys.DOWN).perform()
-        #     ActionChains(driver).key_down(Keys.DOWN).perform()
-        # ActionChains(driver).move_by_offset(-960, -360).perform()
         time.sleep(1)
-    time.sleep(2)
     driver.find_element_by_xpath(".//i[@class='el-icon el-icon-arrow-right']").click()
     time.sleep(2)
