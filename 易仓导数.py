@@ -6,8 +6,8 @@ from selenium.webdriver.common.keys import Keys
 
 url = 'http://jyj.eccang.com/'
 
-user_name = ''
-user_password = ''
+user_name = 'shuju10'
+user_password = 'bmwxy123456*'
 
 path = 'C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe'
 
@@ -20,7 +20,8 @@ driver.find_element_by_name('userPass').send_keys(user_password)
 time.sleep(1)
 driver.find_element_by_id('login').click()
 time.sleep(5)
-od_lst_link = driver.find_element_by_xpath("//*[@id='head']/div[2]/ul/li[1]").click()
+od_lst_link = driver.find_element_by_xpath("//li/a[text()='订单管理系统']/..").click()
+
 
 time.sleep(2)
 
@@ -53,18 +54,19 @@ driver.switch_to.frame('iframe-container-38')
 time.sleep(4)
 
 cb = driver.find_element_by_xpath(".//span[text()='关闭']/..")
-cbt = driver.find_element_by_xpath("/html/body/div[64]/div[3]/div/button")
+cbt = driver.find_element_by_xpath('//button[@type="button" and @role="button"]')
 print(cb.get_attribute('outerHTML'))
 print(cbt.get_attribute('outerHTML'))
 
 
-
+time.sleep(2)
 try:
-    ActionChains(driver).move_to_element(driver.find_element_by_xpath("/html/body/div[64]/div[3]/div/button")).perform()
-    # ActionChains(driver).move_to_element(driver.find_element_by_xpath(".//span[text()='关闭']/..")).perform()
+    # ActionChains(driver).move_to_element(driver.find_element_by_xpath("/html/body/div[64]/div[3]/div/button")).perform()
+    ActionChains(driver).move_to_element(driver.find_element_by_xpath("//td[text()='Tips']/../../../../../div/div/button")).perform()
+    # ActionChains(driver).move_to_element(driver.find_element_by_xpath('//div[64]/div/button')).perform()
     time.sleep(2)
     print('移动成功')
-    driver.find_element_by_xpath("/html/body/div[64]/div[3]/div/button").click()
+    driver.find_element_by_xpath("//div[64]/div/button").click()
     # driver.find_element_by_xpath(".//span[text()='关闭']/..").click()
     print('成了！')
 except:
@@ -75,8 +77,39 @@ except:
 # except:
 #     print('点击失败')
 
+more_con = driver.find_element_by_xpath("//span[text()='展开更多订单条件']/..")
+time.sleep(2)
+
+more_con.click()
+try:
+    driver.find_element_by_xpath('//input[@id="createDateFrom"]').send_keys('2021-07-05 00:00:00')
+    driver.find_element_by_xpath('//input[@id="createDateEnd"]').send_keys('2021-07-11 00:00:00')
+    time.sleep(2)
+    driver.find_element_by_xpath('//a[@id="last_six_months"]').click()
+    time.sleep(2)
+except:
+    print("输入错误")
 
 
+try:
+    ActionChains(driver).move_to_element(driver.find_element_by_xpath('//span[text()="导入导出"]')).perform()
+    time.sleep(1)
+    # driver.find_element_by_xpath('//input[@value="按条件导出"]/..').click()
+    print("牛蛙！")
+    ActionChains(driver).key_down(Keys.DOWN).perform()
+    ActionChains(driver).key_down(Keys.DOWN).perform()
+    ActionChains(driver).key_down(Keys.DOWN).perform()
+    ActionChains(driver).key_down(Keys.DOWN).perform()
+    time.sleep(2)
+    ActionChains(driver).move_to_element(driver.find_element_by_xpath('//input[@value="按条件导出"]')).perform()
+    print("牛蛙！！")
+    driver.find_element_by_xpath('//input[@value="按条件导出"]').click()
+    print("牛蛙！！！")
+    time.sleep(2)
+    driver.find_element_by_xpath('//p[contains(text(),"确定按照搜索条件导出订单")]/../../div/div/button').click()
+    print("太牛了蛙！！！")
+except:
+    print('导出按钮点击失败')
 # closebox.click()
 
 # time.sleep(5)
