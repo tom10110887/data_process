@@ -6,8 +6,8 @@ from selenium.webdriver.common.keys import Keys
 
 url = 'http://jyj.eccang.com/'
 
-user_name = 'shuju10'
-user_password = 'bmwxy123456*'
+user_name = ''
+user_password = ''
 start = '2021-07-12'
 end = '2021-07-14'
 
