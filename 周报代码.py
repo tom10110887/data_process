@@ -48,7 +48,6 @@ def order_type(ot): # 根据备注中包含的关键词区分主单和子单
 def main_order(data_yc_er):
     data_yc_er["主单or子单"] = data_yc_er['system_note'].apply(order_type)  # 区分主单子单
     data_yc_er['GMV'] = data_yc_er['EXCHANGE_RATE'] * data_yc_er['qty'] * data_yc_er['unit_price']
-    print('总订单GMV: %s ,总行数: %d' % (data_yc_er['GMV'].sum(), len(data_yc_er)))
     data = data_yc_er[data_yc_er["主单or子单"] == "主单"]
     return data
 
@@ -100,7 +99,7 @@ def hm_trans(hm_data,s_date,e_date):
     hm_data['订单ID'] = hm_data['订单ID'].astype(str)
     hm_data['SKU'] = hm_data['SKU'].str.upper()
     hm_data['refrence_no_sku'] = hm_data['订单号'] + hm_data['SKU']
-    hm_data = hm_data[(hm_data['付款日期'] >= s_date) & (hm_data['付款日期'] <= e_date)]
+    # hm_data = hm_data[(hm_data['付款日期'] >= s_date) & (hm_data['付款日期'] <= e_date)]
     hm_data['platform'] = 'hm'
     hm_data['SKU']= hm_data['SKU'].astype(str)
     hm_data = hm_data[['订单ID', '收货国家', '币种', 'SKU', 'refrence_no_sku', '订单数量', '单价', 'platform', '年月', '支付金额(CNY)', '付款日期']]
@@ -117,20 +116,81 @@ def hm_trans(hm_data,s_date,e_date):
     return hm_data
 
 
+def new_trans(data, new_data):
+    data['currency'] = data['currency'].str.upper()
+    new_data = new_data[new_data['新品期起始日期'] != ""]
+    new_data['新品期终止日期'] = pd.to_datetime(new_data['新品期终止日期']).dt.date  # 转为日期格式
+    new_data['SKU'] = new_data['SKU'].astype(str)
+    new_data['SPU'] = new_data['SPU'].astype(str)
+    new_data['SKU'] = new_data['SKU'].replace('\\n', '', regex=True)  # 清除换行符
+    new_data['SKU'] = new_data['SKU'].str.upper().apply(lambda x: x.rstrip()).apply(lambda x: x.lstrip())
+    new_data['SPU'] = new_data['SPU'].str.upper().apply(lambda x: x.rstrip()).apply(lambda x: x.lstrip())
+    new_data = new_data[['SKU', '新品期终止日期', 'SPU', '开发专员', '新品期起始日期']]
+    new_data = new_data.drop_duplicates()
+    new_data.rename(columns={'SKU': 'sku'}, inplace=True)
+    data = pd.merge(data, new_data, how='left', on='sku')
+    data['新品期起始日期'] = pd.to_datetime(data['新品期起始日期']).dt.date
+    data['新品期终止日期'] = pd.to_datetime(data['新品期终止日期']).dt.date
+    data['付款日期'] = pd.to_datetime(data['付款日期']).dt.date
+    data["是否新品"] = data.apply(lambda row: date_compare(row['付款日期'], row['新品期终止日期']), axis=1)
+    return data
+
+
+def date_compare(date1, date2):  # 新旧品判断函数
+    if date1 <= date2:
+        y = "新品"
+    else:
+        y = "旧品"
+    return y
+
+def coun_cate_trans(data,country_code,class_data):
+    class_data = class_data[['SKU编码', '一级', '二级', '三级', '四级']]
+    class_data['SKU编码'] = class_data['SKU编码'].str.upper().apply(lambda x: x.rstrip()).apply(lambda x: x.lstrip())
+    class_data.drop_duplicates(subset=['SKU编码'], keep='first', inplace=True)
+    class_data.rename(columns={'SKU编码': 'sku',
+                               '一级': '商品一级品类',
+                               '二级': '商品二级品类',
+                               '三级': '商品三级品类',
+                               '四级': '商品四级品类'}, inplace=True)
+    data = pd.merge(data, country_code, how='left', on=['consignee_country_code'])
+    data = pd.merge(data, class_data, how='left', on=['sku'])
+    return data
+
+def data_rename(data):
+    data.rename(columns={'refrence_no':'refrence_no', 'consignee_country_code':'consignee_country_code',
+                        'currency':'currency', 'sku':'sku',
+                        'refrence_no_sku':'refrence_no_sku','qty':'qty',
+                        'unit_price':'unit_price','platform':'platform',
+                        '年月':'pay_month','GMV':'gmv',
+                        '付款日期':'pay_date','原始sku':'raw_sku',
+                        '新品期终止日期':'p_new_end_date','SPU':'spu',
+                        '开发专员':'developer','新品期起始日期':'p_new_start_date',
+                        '是否新品':'is_new','国家':'country',
+                        '商品一级品类':'cate_1','商品二级品类':'cate_2',
+                        '商品三级品类':'cate_3','商品四级品类':'cate_4'},inplace=True)
+    return data
+
 if __name__ == '__main__':
-    start = '2021-07-15'
-    end = '2021-07-19'
-    s1 = '20210715'
-    e1 = '20210718'
+    start = '2021-07-01'
+    end = '2021-07-20'
+    s1 = start.replace('-', '')
+    e1 = end.replace('-', '')
     s_date = datetime.datetime.strptime(start, '%Y-%m-%d').date()  # 筛选订单起始日期
     e_date = datetime.datetime.strptime(end, '%Y-%m-%d').date()  # 筛选订单终止日期
-    path = r'D:\工作_wxy\周报\易仓原始数据\20210715-20210719'
+    path = r'D:\工作_wxy\周报\易仓原始数据\%s-%s' % (s1,e1)
     path_er = r'D:\工作_wxy\周报\周报维度表\%s\exchange_rate.xlsx' % e1
     path_wh = r'D:\工作_wxy\周报\周报维度表\%s\SKU映射关系(更新至20210429).xlsx' % e1
+    path_deve = r'D:\工作_wxy\周报\周报维度表\%s\新品.xlsx' % e1
+    path_cate = r'D:\工作_wxy\周报\周报维度表\%s\新sku-类目.xlsx' % e1
+    path_coun = r'D:\工作_wxy\周报\周报维度表\%s\国家代码.xlsx' % e1
 
     data_lst = []
+    data_hm_lst = []
     data_er = pd.read_excel(path_er)
     data_wh = pd.read_excel(path_wh)
+    data_new = pd.read_excel(path_deve)
+    data_cate = pd.read_excel(path_cate)
+    data_coun = pd.read_excel(path_coun)
 
     for root,dirs,files in walk(path):
         for f in files:
@@ -138,17 +198,25 @@ if __name__ == '__main__':
             data = pd.read_excel(path_f)
             if 'homary' in f:
                 data_hm = hm_trans(data,s_date,e_date) #如果是homary数据，用homary转换方式进行转换
+                data_hm_lst.append(data_hm)
             else:
                 data = yc_trans(data, f) #易仓的数据，用易仓转换方式转换
                 data_lst.append(data) #将易仓的各平台数据放入列表里
 
     data_yc = pd.concat(data_lst) #易仓各平台数据合并
+    data_hm = pd.concat(data_hm_lst)
     data_yc = data_yc[data_yc['user_account'] != 'Homary']
     data_yc_er = er_trans(data_er, data_yc) #易仓数据匹配汇率
     data_yc_er_m = main_order(data_yc_er) #判断主单子单
     data_yc_er_m_wh = wh_trans(data_wh, data_yc_er_m) #匹配仓库sku到主sku
     data_yc_er_m_wh_s = sku_trans(data_yc_er_m_wh) #匹配仓库sku到主sku
     data_yc_hm = pd.concat([data_hm, data_yc_er_m_wh_s]) #合并homary数据和易仓数据
+    data_new = new_trans(data_yc_hm,data_new) # 匹配sku开发员、新品起始日期
+    data_coun_cate = coun_cate_trans(data_new,data_coun,data_cate) # 匹配国家代码、sku类目
+    print('总订单GMV: %s ,总行数: %d' % (data_coun_cate['GMV'].sum(), len(data_coun_cate)))
 
-    data2 = data_yc_hm
-    data2.to_excel(r'D:\工作_wxy\周报\易仓原始数据\20210715-20210719\data_yc_hm.xlsx',index=None)
+    data = data_coun_cate
+    data2 = data_rename(data)
+    data.to_excel(r'D:\工作_wxy\周报\易仓原始数据\结果表\data({0}-{1}).xlsx'.format(s1,e1),index=None)
+    data2.to_excel(r'D:\工作_wxy\周报\数据库ods表\data({0}-{1}).xlsx'.format(s1, e1), index=None)
+
